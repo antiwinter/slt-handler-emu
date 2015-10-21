@@ -5,6 +5,27 @@
 # variables: bin, power_state(1 or NULL), X(whatever)
 #
 
+#settings
+set timeout 5
+set bin 1 good
+set bin 2 bad
+
+start
+load
+send START
+wait ACK
+poweron
+send NEXT
+wait bin
+poweroff
+unload
+putbin
+#sendhex
+#waithex
+end
+
+
+
 #another one
 set NULL "no data"
 on CF send 1

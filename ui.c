@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <ncurses.h>
@@ -15,14 +16,22 @@ WINDOW *neww(const char *title, int h, int w, int y, int x)
 	WINDOW *win;
 	win = newwin(h, w, y, x);
 	wattron(win, A_STANDOUT);
-	mvwhline(win, 0, 0, ' ', w);
+	if(title) {
+		mvwhline(win, 0, 0, ' ', w);
+		mvwprintw(win, 0, 1, "- %s -", title);
+	}
 	if(x + w < scr_w) // do not draw vborder for windows at right side
 		mvwvline(win, 0, w - 1, '|', h);
-	mvwprintw(win, 0, 1, "- %s -", title);
+
 	wrefresh(win);
 	wattroff(win, A_STANDOUT);
 
 	return win;
+}
+
+void ui_setspeed(int var)
+{
+	frame_interval = var;
 }
 
 int ui_init() {
@@ -44,7 +53,11 @@ int ui_init() {
 	wanm = neww("Handler", (scr_h - TIPS_H + 1) / 2, scr_w / 2, 0, 0);
 	wbin = neww("Bin", (scr_h - TIPS_H) / 2, scr_w / 2, (scr_h - TIPS_H + 1) / 2, 0);
 	wlog = neww("Communication", scr_h - TIPS_H, (scr_w + 1) / 2, 0, scr_w / 2);
+	// just overwrite that to create a sub-window for scrolling
+	wlog = neww(0, scr_h - TIPS_H - 1, (scr_w + 1) / 2, 1, scr_w / 2);
 	wtip = neww("Control", TIPS_H, scr_w, scr_h - TIPS_H, 0);
+
+	scrollok(wlog, 1);
 
 	return 0;
 }
@@ -59,8 +72,13 @@ int ui_input() {
 	return wgetch(wtip);
 }
 
-void ui_print(const char * msg) {
-	wprintw(wlog, msg);
+void ui_print(const char * msg, ...) {
+	va_list args;
+
+	va_start(args, msg);
+	vwprintw(wlog, msg, args);
+	wrefresh(wlog);
+	va_end(args);
 }
 
 void ui_bin_add_tag(const char *tag)
@@ -71,16 +89,20 @@ void ui_bin_add_tag(const char *tag)
 		slot = 0;
 
 	mvwprintw(wbin, slot++, 0, tag);
+	ui_print("adding tag: %s\n", tag);
+	wrefresh(wbin);
 }
 
 void ui_bin_update(int slot, int num)
 {
 	mvwprintw(wbin, slot, 10, "%10d", num);
+	wrefresh(wbin);
 }
 
 void ui_tip_update(int slot, const char *tip)
 {
 	mvwprintw(wtip, slot, 0, tip);
+	wrefresh(wtip);
 }
 
 #define frame_clear(_w, _y, _x, _f) do { \

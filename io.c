@@ -1,9 +1,15 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #define IOBSZ 0x100000
 static char *iobuffer = NULL;
 static int iofd, head, tail;
 
-int io_get_word(const char *word)
+int io_get_word(char *word)
 {
 	char buf[64], *delim = " ,", *p;
 	int ret, i, j;
@@ -66,7 +72,7 @@ int io_init(void)
 	cfsetispeed(&io, B115200);
 	cfsetospeed(&io, B115200);
 
-	iofd = open(TTYDEV, O_RDWR | O_NOCTTY | O_NOBLOCK);
+	iofd = open(TTYDEV, O_RDWR | O_NOCTTY | O_NDELAY);
 	if(iofd >= 0) {
 		tcflush(iofd, TCIFLUSH);
 		if(tcsetattr(iofd, TCSANOW, &io) != 0)
