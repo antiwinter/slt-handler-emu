@@ -52,7 +52,7 @@ int io_send(const char *word)
 	return write(iofd, word, strlen(word));
 }
 
-#define TTYDEV "/dev/ttyUSB0"
+#define TTYDEV "/dev/ptmx"
 int io_init(void)
 {
 	struct termios io;
@@ -73,6 +73,10 @@ int io_init(void)
 	cfsetospeed(&io, B115200);
 
 	iofd = open(TTYDEV, O_RDWR | O_NOCTTY | O_NDELAY);
+
+	unlockpt(iofd);
+	grantpt(iofd);
+
 	if(iofd >= 0) {
 		tcflush(iofd, TCIFLUSH);
 		if(tcsetattr(iofd, TCSANOW, &io) != 0)

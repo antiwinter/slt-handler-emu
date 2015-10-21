@@ -156,7 +156,6 @@ void ui_animation(int step)
 
 	// calc center
 	getmaxyx(wanm, y, x);
-	wprintw(wlog, "animation (%d, %d)\n", y, x);
 
 	y -= 12;
 	y /= 2;

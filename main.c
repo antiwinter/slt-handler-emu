@@ -64,10 +64,10 @@ int parse_line(int argc, char *argv[])
 			lines[lscount].argv[lines[lscount].argc] = malloc(SZ);
 			strcpy(lines[lscount].argv[lines[lscount].argc], argv[i]);
 			lines[lscount].argc++;
-
 			ui_print("%s ", argv[i]);
 		}
 		ui_print("\n");
+		lscount++;
 		return 0;
 	}
 
@@ -104,6 +104,12 @@ int exec_line(int argc, char *argv[])
 	struct alias *al;
 	int i;
 
+	if(!argc) return 0;
+	ui_print("do action: ");
+	for(i = 0; i < argc; i++)
+		ui_print("%s ", argv[i]);
+	ui_print("\n");
+
 	if(strcmp(argv[0], "load") == 0) {
 		ui_animation(1);
 	} else if(strcmp(argv[0], "unload") == 0) {
@@ -113,18 +119,21 @@ int exec_line(int argc, char *argv[])
 	} else if(strcmp(argv[0], "poweroff") == 0) {
 		power_state = 1;
 	} else if(strcmp(argv[0], "putbin") == 0) {
-		for(i = 0;; ) {
+		for(i = 0;;) {
 			al = get_alias("bin", i++);
-			if(al) ui_bin_update(i + 1, al->arg);
+			if(al) ui_bin_update(i, al->arg);
 			else break;
 		}
+		al = get_alias("timeout", 0);
+		if(al) ui_bin_update(i, al->arg);
 	} else if(strcmp(argv[0], "send") == 0) {
 		for(i = 1; i < argc; i++) {
 			const char *s = argv[i];
 			if(strcmp(s, "power_state") == 0)
 				s = power_state? "1": "NULL";
 			al = get_alias(s, 0);
-			io_send(al->str);
+			ui_print("<< %s\n", al? al->str: s);
+			io_send(al? al->str: s);
 		}
 	} else if(strcmp(argv[0], "wait") == 0) {
 		struct timeval a, b, d;
@@ -140,6 +149,7 @@ int exec_line(int argc, char *argv[])
 			timersub(&b, &a, &d);
 			if(d.tv_sec > t) {
 				ui_print("timeout for waiting %s\n", wait_queue_head());
+				al->arg++;
 				break;
 			}
 		}
@@ -155,7 +165,7 @@ void receiver(void *args)
 	struct line *on;
 	struct alias *a;
 	while(1) {
-		if(scanf("%s", word) <= 0) {
+		if(io_get_word(word) <= 0) {
 			usleep(300000);
 			continue;
 		}
@@ -165,6 +175,7 @@ void receiver(void *args)
 		if(on) exec_line(--on->argc, &on->argv[1]);
 
 		// queue management
+		ui_print("<< %s\n", word);
 		if(strcmp(wait_queue_head(), "bin") == 0) {
 			bin = atoi(word);
 			for(i = 0;; ) {
@@ -186,7 +197,7 @@ int main()
 {
 	char buf[64], *v[SZ];
 	struct alias *a;
-	int n, i;
+	int n, i, r;
 	FILE *f;
 
 	ui_init();
@@ -211,15 +222,28 @@ int main()
 		if(!a) break;
 		ui_bin_add_tag(a->str);
 	}
+	ui_bin_add_tag("timeout");
 
 	// init options tip
-	ui_tip_update(1, "Press the corresponding key to perform functions:");
+	ui_tip_update(1, "Press the corresponding key to perform that function:");
 	ui_tip_update(3, "<S> Handler Speed");
 	ui_tip_update(4, "<R> Reset");
 	ui_tip_update(5, "<Q> Quit");
 
+	// init io
+	r = io_init();
+	ptsname_r(r, buf, 64);
+	ui_print("pts name is: %s (%d)\n", buf, r);
+
+	// init wait queue
+	wait_queue_init();
+	ui_animation(0);
+	for(i = 0;; i = (i + 1) % lscount)
+		exec_line(lines[i].argc, lines[i].argv);
+
 end:
 	ui_input();
 	ui_deinit();
+	io_deinit();
 }
 
