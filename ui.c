@@ -2,8 +2,8 @@
 #include <string.h>
 #include <ncurses.h>
 
-#define GH 20
-#define GW 80
+#define GH 24
+#define GW 140 
 #define TIPS_H 10
 #define ARRAY_SIZE(_x) (sizeof(_x)/(sizeof(_x[0])))
 
@@ -33,9 +33,9 @@ int ui_init() {
 	curs_set(0);
 
 	getmaxyx(stdscr, scr_h, scr_w);
-	printw("scr_w: %d, scr_h: %d\n", scr_w, scr_h);
 	if(scr_w < GW || scr_h < GH) {
-		mvprintw(scr_h / 2, scr_w / 2, "Window is too small!");
+		printw("scr_w: %d, scr_h: %d\n", scr_w, scr_h);
+		printw("Window is too small!");
 		getch();
 		endwin();
 		return -1;
@@ -173,24 +173,6 @@ void ui_animation(int step)
 		frame_set(wanm, y + 8, x, socket);
 		frame_set(wanm, y, x + 3, hd0);
 	}
-}
-
-int main()
-{
-	ui_init();
-
-	while(1) {
-		ui_animation(0);
-		ui_animation(1);
-		ui_animation(2);
-		ui_animation(2);
-		ui_animation(2);
-		ui_animation(2);
-		ui_animation(2);
-		ui_animation(3);
-	}
-	ui_input();
-	ui_deinit();
 }
 
 

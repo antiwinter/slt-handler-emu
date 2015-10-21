@@ -1,0 +1,42 @@
+# commands:
+# parser command: set, start, end, on
+# action command: load, unload, poweron, poweroff, putbin
+# serial command: send, wait
+# variables: bin, power_state(1 or NULL), X(whatever)
+#
+
+#settings
+set timeout 5
+set bin 1 good
+set bin 2 bad
+
+start
+load
+send START
+wait ACK
+poweron
+send NEXT
+wait bin
+poweroff
+unload
+putbin
+#sendhex
+#waithex
+end
+
+
+
+#another one
+set NULL "no data"
+on CF send 1
+on CE send power_state
+
+start
+load
+poweron
+wait BA X X bin
+poweroff
+unload
+putbin
+end
+
