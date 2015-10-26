@@ -214,7 +214,7 @@ int main()
 {
 	char buf[64], *v[SZ];
 	struct alias *a;
-	int n, i, r;
+	int n, i, r, skip_actions;
 	FILE *f;
 	pthread_t rv, ks;
 
@@ -264,9 +264,16 @@ int main()
 	pthread_create(&ks, NULL, keyserver, NULL);
 
 again:
+	ui_print("\n\nnew routine:\n");
+	skip_actions = 0;
 	for(wait_queue_init(), i = 0;
-	 i < lscount; i++)
-		exec_line(lines[i].argc, lines[i].argv);
+	 i < lscount; i++) {
+		if(skip_actions && (!strcmp(lines[i].argv[0], "send")
+					  || !strcmp(lines[i].argv[0], "wait")))
+			continue;
+		if(exec_line(lines[i].argc, lines[i].argv) < 0)
+			skip_actions = 1;
+	}
 	wait_queue_deinit();
 	if(!stop) goto again;
 
