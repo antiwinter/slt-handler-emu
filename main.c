@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <pthread.h>
 #include <sys/time.h>
 #include "wait-queue.h"
 
@@ -19,7 +20,7 @@ struct line {
 	int argc;
 	char *argv[SZ];
 } lines[SZ * 2], ons[SZ];
-int bin = 0, power_state = 0;
+int bin = 0, power_state = 0, stop = 0;
 
 struct alias *get_alias(const char *var, int index)
 {
@@ -132,7 +133,7 @@ int exec_line(int argc, char *argv[])
 			if(strcmp(s, "power_state") == 0)
 				s = power_state? "1": "NULL";
 			al = get_alias(s, 0);
-			ui_print("<< %s\n", al? al->str: s);
+			ui_print("--> %s\n", al? al->str: s);
 			io_send(al? al->str: s);
 		}
 	} else if(strcmp(argv[0], "wait") == 0) {
@@ -150,7 +151,7 @@ int exec_line(int argc, char *argv[])
 			if(d.tv_sec > t) {
 				ui_print("timeout for waiting %s\n", wait_queue_head());
 				al->arg++;
-				break;
+				return -1;
 			}
 		}
 	}
@@ -158,7 +159,7 @@ int exec_line(int argc, char *argv[])
 	return 0;
 }
 
-void receiver(void *args)
+void * receiver(void *args)
 {
 	char word[SZ];
 	int i;
@@ -175,7 +176,7 @@ void receiver(void *args)
 		if(on) exec_line(--on->argc, &on->argv[1]);
 
 		// queue management
-		ui_print("<< %s\n", word);
+		ui_print("<-- %s\n", word);
 		if(strcmp(wait_queue_head(), "bin") == 0) {
 			bin = atoi(word);
 			for(i = 0;; ) {
@@ -191,6 +192,22 @@ void receiver(void *args)
 			wait_queue_pop();
 		}
 	}
+
+	return NULL;
+}
+
+void * keyserver(void *args)
+{
+	int ch;
+	while(ch = ui_input()) {
+		switch(ch) {
+			case 'q':
+			case 'Q':
+			ui_print("preparing to quit ...\n");
+			stop = 1;
+			break;
+		}
+	}
 }
 
 int main()
@@ -199,8 +216,10 @@ int main()
 	struct alias *a;
 	int n, i, r;
 	FILE *f;
+	pthread_t rv, ks;
 
 	ui_init();
+	ui_animation(0);
 
 	f = fopen("commands.desc", "r");
 	if(f == NULL) {
@@ -237,12 +256,21 @@ int main()
 
 	// init wait queue
 	wait_queue_init();
-	ui_animation(0);
-	for(i = 0;; i = (i + 1) % lscount)
+
+	// init receiver
+	pthread_create(&rv, NULL, receiver, NULL);
+
+	// init keyserver
+	pthread_create(&ks, NULL, keyserver, NULL);
+
+again:
+	for(wait_queue_init(), i = 0;
+	 i < lscount; i++)
 		exec_line(lines[i].argc, lines[i].argv);
+	wait_queue_deinit();
+	if(!stop) goto again;
 
 end:
-	ui_input();
 	ui_deinit();
 	io_deinit();
 }

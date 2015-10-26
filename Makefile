@@ -1,3 +1,7 @@
 
+LDFLAGS := -lncurses -lpthread
+CFLAGS := -Wno-deprecated-declarations -g
+SRC := main.c ui.c io.c wait-queue.c
+
 all:
-	gcc main.c ui.c io.c wait-queue.c -lncurses -Wno-deprecated-declarations -g
+	gcc ${SRC} ${CFLGAS} ${LDFLAGS}

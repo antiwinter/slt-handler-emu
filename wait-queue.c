@@ -25,9 +25,19 @@ int wait_queue_init()
 	ls_init(head);
 }
 
-const char * wait_queue_pop()
+int wait_queue_deinit()
 {
+	struct word *p, *q;
+	ls_destory(p, q, head);
+	ls_init(head);
+	return 0;
+}
+
+void wait_queue_pop()
+{
+	struct word *w = head.next;
 	ls_pop(head);
+	free(w);
 }
 
 const char * wait_queue_head()
@@ -40,7 +50,7 @@ int wait_queue_empty()
 	return ls_empty(head);
 }
 
-int wait_queue_add(const char *str)
+void wait_queue_add(const char *str)
 {
 	struct word *w = malloc(sizeof(struct word));
 	strcpy(w->str, str);

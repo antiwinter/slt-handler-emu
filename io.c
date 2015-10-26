@@ -11,11 +11,19 @@ static int iofd, head, tail;
 
 int io_get_word(char *word)
 {
-	char buf[64], *delim = " ,", *p;
+	char buf[64], *delim = " ,\n\r", *p;
 	int ret, i, j;
 
 	// read new input
-	while(ret = read(iofd, buf, 64) > 0) {
+	while(1) {
+//	while(ret = read(iofd, buf, 64) > 0) {
+	ret = read(iofd, buf, 64);
+	if(ret <= 0)
+		break;
+//	else
+//	ui_print("io_in %d::[%c] [%c] [%c] [%c] [%c] [%c] [%c] [%c]\n", ret,
+//		  buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7]);
+//	ui_print("head=%d, tail=%d\n", head, tail);
 		if(tail + ret > IOBSZ) {
 			memcpy(&iobuffer[tail], buf, IOBSZ - tail);
 			memcpy(&iobuffer[0], buf + IOBSZ - tail, ret + tail - IOBSZ);
@@ -23,23 +31,29 @@ int io_get_word(char *word)
 			memcpy(&iobuffer[tail], buf, ret);
 
 		tail = (tail + ret) % IOBSZ;
+//	ui_print("head=%d, tail=%d\n", head, tail);
 	}
 
 	// provide word output
 	// ret is used as word begin flag
 	ret = 0;
 	for(i = head, j = 0; i != tail; i = (i + 1) % IOBSZ) {
+//		ui_print("\\\\ %d::%d ", i, iobuffer[i]);
 		for(p = delim; *p; p++)
-			if(iobuffer[i] == *p)
+			if(iobuffer[i] == *p) {
+//				ui_print("skip\n");
 				break;
+			}
 
 		if(!*p) {
 			ret = 1;
 			buf[j++] = iobuffer[i];
+//			ui_print("log->%d\n", j);
 		} else if(ret == 1) {
 			buf[j] = 0;
-			head += j;
 			strcpy(word, buf);
+			head = i;
+//			ui_print("return \n");
 			return j;
 		}
 	}
