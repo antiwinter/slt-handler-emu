@@ -198,7 +198,7 @@ void * receiver(void *args)
 
 void * keyserver(void *args)
 {
-	int ch;
+	static int ch, i = 0, c = 'a';
 	while(ch = ui_input()) {
 		switch(ch) {
 			case 'q':
@@ -206,6 +206,26 @@ void * keyserver(void *args)
 			ui_print("preparing to quit ...\n");
 			stop = 1;
 			break;
+			case 0x60:
+			ui_scroll(-5);
+			break;
+			case 0x61:
+			ui_scroll(5);
+			break;
+			case ' ':
+			ui_pausemsg(0);
+			break;
+			case 1: // Ctrl-A
+			ui_pausemsg(1);
+			break;
+			case 3: // Ctrl-C
+			ui_deinit();
+			io_deinit();
+			exit(1);
+			break;
+			default:
+//			ui_print("key code: %d", ch);
+;
 		}
 	}
 }

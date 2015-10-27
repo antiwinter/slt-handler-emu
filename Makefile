@@ -1,6 +1,6 @@
 
 LDFLAGS := -lncurses -lpthread
-CFLAGS := -Wno-deprecated-declarations -g
+CFLAGS := -Wno-deprecated-declarations
 SRC := main.c ui.c io.c wait-queue.c
 
 all:
