@@ -18,12 +18,13 @@ on CF handshake \005 \006
 on CF send_txt 1
 on CE handshake \005 \006
 on CE send_txt power_state
-on X send \006
+on \005 send \006
 
 start
 load
 poweron
 wait BA X X bin
+send \006
 poweroff
 unload
 putbin
