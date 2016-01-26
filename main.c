@@ -147,18 +147,25 @@ int exec_line(int argc, char *argv[])
 		al = get_alias("timeout", 0);
 		if(al) ui_bin_update(i, al->arg);
 	} else if(strncmp(argv[0], "send", 4) == 0) {
-		if(strcmp(argv[0], "send_txt") == 0)
+		if(strcmp(argv[0], "send_txt") == 0) {
 			io_send("\002");
+			ui_print("--> <STX>\n");
+		}
 		for(i = 1; i < argc; i++) {
 			const char *s = argv[i];
 			if(strcmp(s, "power_state") == 0)
 				s = power_state? "1": "NULL";
 			al = get_alias(s, 0);
-			ui_print("--> %s\n", al? al->str: s);
+			if(s[0] == 006)
+				ui_print("--> <ACK>\n");
+			else
+				ui_print("--> %s\n", al? al->str: s);
 			io_send(al? al->str: s);
 		}
-		if(strcmp(argv[0], "send_txt") == 0)
+		if(strcmp(argv[0], "send_txt") == 0) {
 			io_send("\003");
+			ui_print("--> <ETX>\n");
+		}
 	} else if(strcmp(argv[0], "wait") == 0) {
 		struct timeval a, b, d;
 		int t;
@@ -202,7 +209,13 @@ void * receiver(void *args)
 		exec_on(word);
 
 		// queue management
-		ui_print("<-- %s\n", word);
+		if(word[0] == 005)
+			ui_print("<-- <ENQ>\n", word);
+		else if(word[0] == 006)
+			ui_print("<-- <ACK>\n", word);
+		else
+			ui_print("<-- %s\n", word);
+
 		if(strcmp(wait_queue_head(), "bin") == 0) {
 			bin = atoi(word);
 			for(i = 0;; ) {
