@@ -39,10 +39,11 @@ void exec_on(const char *var)
 	int i, find = 0;
 	for(i = 0; i < onscount; i++) {
 		if(strcmp(ons[i].argv[0], var) == 0 ||
-			(!find && strcmp(ons[i].argv[0], "X") == 0))
+			(!find && strcmp(ons[i].argv[0], "X") == 0)) {
 
 			find = 1;
-			exec_line(--ons[i].argc, &ons[i].argv[1]);
+			exec_line(ons[i].argc - 1, &ons[i].argv[1]);
+		}
 	}
 }
 
@@ -156,10 +157,7 @@ int exec_line(int argc, char *argv[])
 			if(strcmp(s, "power_state") == 0)
 				s = power_state? "1": "NULL";
 			al = get_alias(s, 0);
-			if(s[0] == 006)
-				ui_print("--> <ACK>\n");
-			else
-				ui_print("--> %s\n", al? al->str: s);
+			ui_print("--> %s\n", al? al->str: s);
 			io_send(al? al->str: s);
 		}
 		if(strcmp(argv[0], "send_txt") == 0) {
@@ -185,9 +183,13 @@ int exec_line(int argc, char *argv[])
 			}
 		}
 	} else if(strcmp(argv[0], "handshake") == 0) {
+		char word[SZ];
+		ui_print("--> %s\n", argv[1]);
 		io_send(argv[1]);
-		wait_queue_add_head(argv[2]);
-		while(strcmp(argv[2], wait_queue_head()) == 0);
+		while(io_get_word(word) <= 0);
+		ui_print("<-- %s\n", word);
+		if(strcmp(word, argv[2]) != 0)
+			return -1;
 	}
 
 	return 0;
@@ -205,16 +207,11 @@ void * receiver(void *args)
 			continue;
 		}
 
+		// queue management
+		ui_print("<-- %s\n", word);
+
 		// trigger on event
 		exec_on(word);
-
-		// queue management
-		if(word[0] == 005)
-			ui_print("<-- <ENQ>\n", word);
-		else if(word[0] == 006)
-			ui_print("<-- <ACK>\n", word);
-		else
-			ui_print("<-- %s\n", word);
 
 		if(strcmp(wait_queue_head(), "bin") == 0) {
 			bin = atoi(word);

@@ -5,3 +5,4 @@ SRC := main.c ui.c io.c wait-queue.c
 
 all:
 	gcc ${SRC} ${CFLGAS} ${LDFLAGS}
+	gcc test.c -o t.out

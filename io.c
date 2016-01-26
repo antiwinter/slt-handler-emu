@@ -60,6 +60,7 @@ int io_get_word(char *word)
 			word[0] = iobuffer[i];
 			word[1] = 0;
 			head = i + 1;
+//			ui_print("return 0506 \n");
 			return 1;
 		}
 	}
