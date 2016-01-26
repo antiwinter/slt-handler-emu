@@ -34,14 +34,33 @@ struct alias *get_alias(const char *var, int index)
 	return NULL;
 }
 
-struct line *get_on(const char *var)
+void exec_on(const char *var)
 {
-	int i;
+	int i, find = 0;
 	for(i = 0; i < onscount; i++) {
-		if(strcmp(ons[i].argv[0], var) == 0)
-			return &ons[i];
+		if(strcmp(ons[i].argv[0], var) == 0 ||
+			(!find && strcmp(ons[i].argv[0], "X") == 0))
+
+			find = 1;
+			exec_line(--ons[i].argc, &ons[i].argv[1]);
 	}
-	return NULL;
+}
+
+void escape_strcpy(char *dst, const char *src)
+{
+	char v[4] = {0, 0, 0, 0};
+
+	for(; *src; src++, dst++) {
+		if(*src == '\\') {
+			v[0] = *++src;
+			v[1] = *++src;
+			v[2] = *++src;
+			*dst = strtol(v, NULL, 8);
+		} else
+			*dst = *src;
+	}
+
+	*dst = 0;
 }
 
 int parse_line(int argc, char *argv[])
@@ -63,7 +82,7 @@ int parse_line(int argc, char *argv[])
 		ui_print("register actions: ");
 		for(i = 0; i < argc; i++) {
 			lines[lscount].argv[lines[lscount].argc] = malloc(SZ);
-			strcpy(lines[lscount].argv[lines[lscount].argc], argv[i]);
+			escape_strcpy(lines[lscount].argv[lines[lscount].argc], argv[i]);
 			lines[lscount].argc++;
 			ui_print("%s ", argv[i]);
 		}
@@ -73,12 +92,12 @@ int parse_line(int argc, char *argv[])
 	}
 
 	if(strcmp(argv[0], "set") == 0) {
-		strcpy(aliases[acount].var, argv[1]);
+		escape_strcpy(aliases[acount].var, argv[1]);
 		aliases[acount].arg = 0;
 		if(argc > 2)
 			aliases[acount].num = atoi(argv[2]);
 		if(argc > 3)
-			strcpy(aliases[acount].str, argv[3]);
+			escape_strcpy(aliases[acount].str, argv[3]);
 		acount++;
 		ui_print("set alias: %s: %d, %s\n", argv[1], atoi(argv[2]), (argc > 3)? argv[3]: "null");
 	} else if(strcmp(argv[0], "on") == 0) {
@@ -87,7 +106,7 @@ int parse_line(int argc, char *argv[])
 		for(i = 1; i < argc; i++) {
 			ui_print("%s ", argv[i]);
 			ons[onscount].argv[ons[onscount].argc] = malloc(SZ);
-			strcpy(ons[onscount].argv[ons[onscount].argc], argv[i]);
+			escape_strcpy(ons[onscount].argv[ons[onscount].argc], argv[i]);
 			ons[onscount].argc++;
 		}
 		ui_print("\n");
@@ -127,7 +146,9 @@ int exec_line(int argc, char *argv[])
 		}
 		al = get_alias("timeout", 0);
 		if(al) ui_bin_update(i, al->arg);
-	} else if(strcmp(argv[0], "send") == 0) {
+	} else if(strncmp(argv[0], "send", 4) == 0) {
+		if(strcmp(argv[0], "send_txt") == 0)
+			io_send("\002");
 		for(i = 1; i < argc; i++) {
 			const char *s = argv[i];
 			if(strcmp(s, "power_state") == 0)
@@ -136,13 +157,15 @@ int exec_line(int argc, char *argv[])
 			ui_print("--> %s\n", al? al->str: s);
 			io_send(al? al->str: s);
 		}
+		if(strcmp(argv[0], "send_txt") == 0)
+			io_send("\003");
 	} else if(strcmp(argv[0], "wait") == 0) {
 		struct timeval a, b, d;
 		int t;
 		al = get_alias("timeout", 0);
 		t = al? al->num: TIMEOUT;
 		for(i = 1; i < argc; i++)
-			wait_queue_add(argv[i]);
+			wait_queue_add_tail(argv[i]);
 
 		gettimeofday(&a, NULL);
 		for(;!wait_queue_empty(); ui_animation(2)) {
@@ -154,6 +177,10 @@ int exec_line(int argc, char *argv[])
 				return -1;
 			}
 		}
+	} else if(strcmp(argv[0], "handshake") == 0) {
+		io_send(argv[1]);
+		wait_queue_add_head(argv[2]);
+		while(strcmp(argv[2], wait_queue_head()) == 0);
 	}
 
 	return 0;
@@ -172,8 +199,7 @@ void * receiver(void *args)
 		}
 
 		// trigger on event
-		on = get_on(word);
-		if(on) exec_line(--on->argc, &on->argv[1]);
+		exec_on(word);
 
 		// queue management
 		ui_print("<-- %s\n", word);

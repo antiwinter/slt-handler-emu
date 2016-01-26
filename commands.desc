@@ -1,8 +1,10 @@
 # commands:
 # parser command: set, start, end, on
 # action command: load, unload, poweron, poweroff, putbin
-# serial command: send, wait
+# serial command: send, wait, send_txt
 # variables: bin, power_state(1 or NULL), X(whatever)
+#
+# \005 is in Octa
 #
 
 #settings
@@ -10,17 +12,20 @@ set timeout 5
 set bin 1 good
 set bin 2 bad
 
+#another one
+set NULL "no data"
+on CF handshake \005 \006
+on CF send_txt 1
+on CE handshake \005 \006
+on CE send_txt power_state
+on X send \006
+
 start
 load
-send START
-wait ACK
 poweron
-send NEXT
-wait bin
+wait BA X X bin
 poweroff
 unload
 putbin
-#sendhex
-#waithex
 end
 

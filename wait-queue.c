@@ -50,10 +50,17 @@ int wait_queue_empty()
 	return ls_empty(head);
 }
 
-void wait_queue_add(const char *str)
+void wait_queue_add_tail(const char *str)
 {
 	struct word *w = malloc(sizeof(struct word));
 	strcpy(w->str, str);
 	ls_add_before(w, (&head));
+}
+
+void wait_queue_add_head(const char *str)
+{
+	struct word *w = malloc(sizeof(struct word));
+	strcpy(w->str, str);
+	ls_add_before(w, head.next);
 }
 

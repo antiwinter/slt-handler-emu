@@ -11,7 +11,7 @@ static int iofd, head, tail;
 
 int io_get_word(char *word)
 {
-	char buf[64], *delim = " ,\n\r", *p;
+	char buf[64], *delim = " ,\n\r\002\003\005\006", *p;
 	int ret, i, j;
 
 	// read new input
@@ -55,6 +55,12 @@ int io_get_word(char *word)
 			head = i;
 //			ui_print("return \n");
 			return j;
+		} else if(iobuffer[i] == '\005' ||
+			iobuffer[i] == '\006') {
+			word[0] = iobuffer[i];
+			word[1] = 0;
+			head = i + 1;
+			return 1;
 		}
 	}
 
