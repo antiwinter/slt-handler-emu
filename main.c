@@ -165,6 +165,11 @@ int exec_line(int argc, char *argv[])
 			ui_print("--> <ETX>\n");
 		}
 	} else if(strcmp(argv[0], "wait") == 0) {
+		for(i = 1; i < argc; i++)
+			wait_queue_add_tail(argv[i]);
+
+		for(;!wait_queue_empty(); ui_animation(2));
+	} else if(strcmp(argv[0], "wait_timeout") == 0) {
 		struct timeval a, b, d;
 		int t;
 		al = get_alias("timeout", 0);

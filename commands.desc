@@ -23,7 +23,9 @@ on \005 send \006
 start
 load
 poweron
-wait BA X X bin
+wait CE
+wait CF
+wait_timeout BA X X bin
 send \006
 poweroff
 unload
