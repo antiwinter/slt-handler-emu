@@ -12,6 +12,7 @@
 
 WINDOW *wbin, *wanm, *wtip, *wmsg, *wmsgt, *wdbg;
 int scr_w, scr_h, frame_interval = 30000;
+FILE *flog;
 
 struct msgbuffer {
 	char *buf;
@@ -78,6 +79,7 @@ int ui_init() {
 	msg.window = scr_h - TIPS_H - 1;
 	pthread_mutex_init(&msg.lock, NULL);
 
+	flog = fopen("ui.log", "w");
 	return 0;
 }
 
@@ -167,6 +169,10 @@ void ui_print(const char * fmt, ...) {
 	va_start(args, fmt);
 	n = vsprintf(msg.buf + msg.tail, fmt, args);
 	va_end(args);
+	va_start(args, fmt);
+	vfprintf(flog, fmt, args);
+	va_end(args);
+	fflush(flog);
 
 	for(i = msg.tail; msg.buf[i]; i++)
 		if(msg.buf[i] == '\n') msg.lines++;
